@@ -188,7 +188,7 @@
                 }
             }
             if (requestsRateLimited.length > 0) {
-                $("#requestsToMake").html(requestsRateLimited.length)
+                $("#nbLeft").html(requestsRateLimited.length)
                 $('#waitPlease').show();
                 setTimeout(makeRequests, 60 * 1000, requestsRateLimited);
                 setTimeout(updateTimeToWaitString, TIME_BEFORE_UPDATE_WAIT_STRING, 60);
@@ -202,7 +202,7 @@
         function updateTimeToWaitString(timeLeft) {
             $("#timeToWait").html(timeLeft);
             if (timeLeft > 0)
-                setTimeout(timeLeft - 5)
+                setTimeout(timeLeft - 5);
         }
     }
 

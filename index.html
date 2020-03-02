@@ -81,7 +81,7 @@
         <button id="btnGo">Unsubscribe from all</button>
         <div class="break"></div>
         <div id='waitPlease' style="display:none">
-            <p>Rate limited by the API, waiting <span id="timeToWait">60 seconds</span></p>
+            <p>Rate limited by the API, waiting <span id="timeToWait">60</span> seconds</p>
             <p>Requests left : <span id='requestsToMake'>0</span>
         </div>
         <div class="break"></div>
@@ -170,22 +170,6 @@
                     success: console.log
                 });
             })
-            /*let batches = []
-            for (let i = 0; i < subscribedModsID.length / MAX_REQUEST_PER_BATCH; i++) {
-                let currBatch = [];
-                for (let y = 0; y < MAX_REQUEST_PER_BATCH; y++) {
-                    currBatch.push(subscribedModsID[i * MAX_REQUEST_PER_BATCH + y]);
-                }
-                batches.push(currBatch);
-            }
-            let i = 0;
-            batches.forEach(function (val) {
-                if (i < 60)
-                    $.ajax(val);
-                else
-                    
-                    i++;
-            }*/
             $('#status').html("Number of mods to unsub left : <span id='nbLeft'>" + subscribedModsID.length + "</span>");
             makeRequests(allRequestsObjectArray);
         }

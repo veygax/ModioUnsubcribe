@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Unsubscribe from mod.io</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Open+Sans&display=swap');
+
+        :root {
+            --light-blue: 102, 255, 255;
+            --thead-color: 68, 102, 136;
+
+        }
+
+        body {
+            background-color: #628590;
+            font-family: 'Open Sans' !important;
+        }
+
+        #wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            background-color: #445566;
+            margin: auto;
+            margin-top: 10%;
+            color: white;
+            width: 85%;
+            height: 70%;
+            justify-content: center;
+            padding-bottom: 5%;
+        }
+
+        @keyframes colorTurn {
+
+            from,
+            to {
+                color: white;
+                border: 2px dotted rgb(var(--light-blue));
+            }
+
+            25%,
+            75% {
+                color: white;
+                border: 2px dashed rgb(var(--light-blue));
+            }
+
+            50% {
+                color: white;
+                border: 2px ridge rgb(var(--light-blue));
+            }
+
+
+        }
+
+        button {
+            background-color: rgb(var(--thead-color));
+            color: white;
+            border: 2px ridge rgb(var(--light-blue));
+            font-size: 2.5rem;
+            margin-top: 5vw;
+            width: 50vw;
+            height: 15vw;
+        }
+
+        button:hover {
+            animation-duration: 1.5s;
+            animation-name: colorTurn;
+            animation-iteration-count: infinite;
+        }
+
+        .break {
+            flex-basis: 100%;
+            height: 0%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="wrapper">
+        <button id="btnGo">Unsubscribe from all</button>
+        <div class="break"></div>
+        <div id='waitPlease' style="display:none">
+            <p>Rate limited by the API, waiting <span id="timeToWait">60</span> seconds</p>
+            <p>Requests left : <span id='requestsToMake'>0</span>
+        </div>
+        <div class="break"></div>
+        <div id="statusDiv" style="display:none;">
+            <h2 id="status">DONE</h2>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+    crossorigin="anonymous"></script>
+
+<script>
+    const TIME_BEFORE_UPDATE_WAIT_STRING = 5 * 1000;
+
+    const MORDHAU_GAME_ID = 169;
+    const API_URL = "https://api.mod.io/v1/";
+
+    const API_SUBSCRIBED_ENDPOINT = "me/subscribed";
+    const API_MORDHAU_ENDPOINT = "games/" + MORDHAU_GAME_ID + "/";
+    const API_BATCH_ENDPOINT = "batch";
+
+    const API_MODS_SUBSCRIBE_EVENT = "mods/{mod-id}/subscribe";
+    const API_RATE_LIMIT_PER_MINUTE = 60;
+
+    const API_ID = "id";
+    const API_MIN_FILTER = "-min";
+
+    const MAX_REQUEST_PER_BATCH = 20;
+
+    var token;
+    var subscribedModsID = [];
+    var allRequestsObjectArray = [];
+    $(document).ready(initialize);
+
+    function initialize() {
+        $('#btnGo').on('click', askForToken);
+    }
+
+    function askForToken() {
+        token = prompt("Enter your access token");
+        $('#statusDiv').show();
+        $('#status').html("Getting subscribed mods list");
+        getSubscribedModsList();
+    }
+
+    function getSubscribedModsList(idStartingFrom = 0) {
+        let idParam = API_ID + API_MIN_FILTER;
+        $.ajax({
+            url: API_URL + API_SUBSCRIBED_ENDPOINT,
+            type: "GET",
+            data: {
+                _offset: idStartingFrom,
+            },
+            headers: {
+                "Content-Type": "x-www-form-urlencoded",
+                Authorization: "Bearer " + token,
+            },
+            success: getModListRequestSuccessHandler,
+        });
+    }
+
+    function getModListRequestSuccessHandler(data) {
+        console.log(data);
+        let answerData = data.data;
+        answerData.forEach(function (val) {
+            subscribedModsID.push(val.id);
+        });
+        if (data.result_total > data.result_count + data.result_offset) {
+            getSubscribedModsList(data.result_offset + data.result_count);
+        } else {
+            $('#status').html("Number of mods subbed : " + subscribedModsID.length)
+            unsubscribeFromAllMods();
+        }
+    }
+
+    function unsubscribeFromAllMods() {
+        if (subscribedModsID.length > 0) {
+            subscribedModsID.forEach(function (val) {
+                allRequestsObjectArray.push({
+                    url: API_URL + API_MORDHAU_ENDPOINT + API_MODS_SUBSCRIBE_EVENT.replace("{mod-id}", val),
+                    type: "DELETE",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        Authorization: "Bearer " + token,
+                    },
+                    success: console.log
+                });
+            })
+            /*let batches = []
+            for (let i = 0; i < subscribedModsID.length / MAX_REQUEST_PER_BATCH; i++) {
+                let currBatch = [];
+                for (let y = 0; y < MAX_REQUEST_PER_BATCH; y++) {
+                    currBatch.push(subscribedModsID[i * MAX_REQUEST_PER_BATCH + y]);
+                }
+                batches.push(currBatch);
+            }
+            let i = 0;
+            batches.forEach(function (val) {
+                if (i < 60)
+                    $.ajax(val);
+                else
+                    
+                    i++;
+            }*/
+            $('#status').html("Number of mods to unsub left : <span id='nbLeft'>" + subscribedModsID.length + "</span>");
+            makeRequests(allRequestsObjectArray);
+        }
+
+        function makeRequests(requestsToDo) {
+            $('#waitPlease').hide();
+            modsCount = requestsToDo.length;
+            let requestsRateLimited = [];
+            for (let i = 0; i < requestsToDo.length; i++) {
+                if (i < API_RATE_LIMIT_PER_MINUTE) {
+                    $.ajax(allRequestsObjectArray[i]);
+                    $('#nbLeft').html(modsCount);
+                    modsCount--;
+                } else {
+                    requestsRateLimited.push(allRequestsObjectArray[i]);
+                }
+            }
+            if (requestsRateLimited.length > 0) {
+                $("#requestsToMake").html(requestsRateLimited.length)
+                $('#waitPlease').show();
+                setTimeout(makeRequests, 60 * 1000, requestsRateLimited);
+                setTimeout(updateTimeToWaitString, TIME_BEFORE_UPDATE_WAIT_STRING, 60);
+            } else {
+                $('#waitPlease').hide();
+                $('#status').replaceWith("<h1 id='status'>DONE</h1>");
+                alert("Done");
+            }
+        }
+
+        function updateTimeToWaitString(timeLeft) {
+            $("#timeToWait").html(timeLeft);
+            if (timeLeft > 0)
+                setTimeout(timeLeft - 5)
+        }
+    }
+
+
+
+</script>
+
+</html>

@@ -28,7 +28,7 @@
             width: 85%;
             height: 70%;
             justify-content: center;
-            padding-bottom:5%;
+            padding-bottom: 5%;
         }
 
         @keyframes colorTurn {
@@ -85,8 +85,8 @@
             <p>Requests left : <span id='requestsToMake'>0</span>
         </div>
         <div class="break"></div>
-        <div id="isDone" style="display:none;">
-            <h1>DONE</h1>
+        <div id="statusDiv" style="display:none;">
+            <h2 id="status">DONE</h2>
         </div>
     </div>
 </body>
@@ -122,24 +122,12 @@
 
     function askForToken() {
         token = prompt("Enter your access token");
-        $.ajax({
-            type: "GET",
-            url: API_URL + "games",
-            success: console.log,
-            headers: {
-                "Content-Type": "x-www-form-urlencoded",
-                Authorization: "Bearer " + token,
-            },
-
-        });
+        $('#statusDiv').show();
+        $('#status').html("Getting subscribed mods list");
         getSubscribedModsList();
     }
-    var cnt = 0;
+
     function getSubscribedModsList(idStartingFrom = 0) {
-        cnt++;
-        if (cnt > 3) {
-            return;
-        }
         let idParam = API_ID + API_MIN_FILTER;
         $.ajax({
             url: API_URL + API_SUBSCRIBED_ENDPOINT,
@@ -164,6 +152,7 @@
         if (data.result_total > data.result_count + data.result_offset) {
             getSubscribedModsList(data.result_offset + data.result_count);
         } else {
+            $('#status').html("Number of mods subbed : " + subscribedModsID.length)
             unsubscribeFromAllMods();
         }
     }
@@ -197,18 +186,22 @@
                     
                     i++;
             }*/
-            $("#wrapper").append("");
+            $('#status').html("Number of mods to unsub left : <span id='nbLeft'>" + subscribedModsID.length + "</span>");
             makeRequests(allRequestsObjectArray);
         }
 
         function makeRequests(requestsToDo) {
             $('#waitPlease').hide();
+            modsCount = requestsToDo.length;
             let requestsRateLimited = [];
             for (let i = 0; i < requestsToDo.length; i++) {
-                if (i < API_RATE_LIMIT_PER_MINUTE)
+                if (i < API_RATE_LIMIT_PER_MINUTE) {
                     $.ajax(allRequestsObjectArray[i]);
-                else
+                    $('#nbLeft').html(modsCount);
+                    modsCount--;
+                } else {
                     requestsRateLimited.push(allRequestsObjectArray[i]);
+                }
             }
             if (requestsRateLimited.length > 0) {
                 $("#requestsToMake").html(requestsRateLimited.length)
@@ -217,7 +210,7 @@
                 setTimeout(updateTimeToWaitString, TIME_BEFORE_UPDATE_WAIT_STRING, 60);
             } else {
                 $('#waitPlease').hide();
-                $('#isDone').show();
+                $('#status').replaceWith("<h1 id='status'>DONE</h1>");
                 alert("Done");
             }
         }

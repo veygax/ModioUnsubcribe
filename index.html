@@ -202,7 +202,7 @@
         function updateTimeToWaitString(timeLeft) {
             $("#timeToWait").html(timeLeft);
             if (timeLeft > 0)
-                setTimeout(timeLeft - 5);
+                setTimeout(updateTimeToWaitString, TIME_BEFORE_UPDATE_WAIT_STRING, timeLeft - TIME_BEFORE_UPDATE_WAIT_STRING);
         }
     }
 
